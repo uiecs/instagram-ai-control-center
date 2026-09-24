@@ -1,2 +1,20 @@
-# instagram-ai-control-center
-Secure Persian RTL Instagram content management dashboard with AI-assisted drafting and official Meta Graph API integration.
+# Instagram AI Control Center
+
+داشبورد RTL فارسی برای تولید محتوای اینستاگرام، چت هوشمند، تولید تصویر و آماده‌سازی انتشار از طریق API رسمی Meta.
+
+## محدوده امن
+- کلیدهای OpenAI و Meta فقط در backend و متغیرهای محیطی نگهداری می‌شوند.
+- انتشار فقط با تأیید صریح کاربر انجام می‌شود.
+- جست‌وجوی نام کاربری فقط برای نتایج عمومی/قابل مشاهده در منابع مجاز انجام می‌شود؛ ابزار به اینستاگرام لاگین نمی‌کند و فهرست قطعی «تمام» حساب‌ها را ادعا نمی‌کند.
+- قابلیت‌های follow/unfollow، لایک و کامنت انبوه یا دورزدن محدودیت‌های Instagram در این پروژه وجود ندارد.
+
+## اجرا
+```bash
+cp .env.example .env
+# مقادیر OPENAI_API_KEY و در صورت نیاز Meta را وارد کنید
+docker compose up --build
+```
+
+Frontend: `http://localhost:3000`  Backend: `http://localhost:8000`
+
+برای فعال‌سازی انتشار واقعی، اپ Meta، OAuth و دسترسی‌های تأییدشده لازم است. بدون توکن معتبر، endpoint انتشار فقط پیش‌نمایش برمی‌گرداند.
