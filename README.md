@@ -1,20 +1,26 @@
 # Instagram AI Control Center
 
-داشبورد RTL فارسی برای تولید محتوای اینستاگرام، چت هوشمند، تولید تصویر و آماده‌سازی انتشار از طریق API رسمی Meta.
+داشبورد RTL فارسی برای تولید محتوای اینستاگرام و اتصال به قابلیت‌های مجاز Meta.
 
-## محدوده امن
-- کلیدهای OpenAI و Meta فقط در backend و متغیرهای محیطی نگهداری می‌شوند.
-- انتشار فقط با تأیید صریح کاربر انجام می‌شود.
-- جست‌وجوی نام کاربری فقط برای نتایج عمومی/قابل مشاهده در منابع مجاز انجام می‌شود؛ ابزار به اینستاگرام لاگین نمی‌کند و فهرست قطعی «تمام» حساب‌ها را ادعا نمی‌کند.
-- قابلیت‌های follow/unfollow، لایک و کامنت انبوه یا دورزدن محدودیت‌های Instagram در این پروژه وجود ندارد.
+## استقرار نهایی
 
-## اجرا
+- راهنمای کامل Netlify و backend: [`docs/netlify-deployment.md`](docs/netlify-deployment.md)
+- مخزن: https://github.com/uiecs/instagram-ai-control-center
+- frontend روی Netlify و backend FastAPI روی یک سرویس Docker جداگانه اجرا می‌شود.
+
 ```bash
 cp .env.example .env
-# مقادیر OPENAI_API_KEY و در صورت نیاز Meta را وارد کنید
 docker compose up --build
 ```
 
-Frontend: `http://localhost:3000`  Backend: `http://localhost:8000`
+## قابلیت‌های عملیاتی
 
-برای فعال‌سازی انتشار واقعی، اپ Meta، OAuth و دسترسی‌های تأییدشده لازم است. بدون توکن معتبر، endpoint انتشار فقط پیش‌نمایش برمی‌گرداند.
+- چت و تولید محتوای فارسی با OpenAI API
+- تولید تصویر با OpenAI Images API
+- پیش‌نمایش و انتشار عکس از طریق Instagram Graph API رسمی پس از تأیید صریح
+- جست‌وجوی عمومی وب برای نام کاربری، بدون ادعای کشف قطعی همه حساب‌ها
+- ماژول Follow/Unfollow غیررسمی فقط به‌صورت غیرفعال و هشداردهنده
+
+## نکات مهم استقرار
+
+OpenAI/Meta/Brave keys را در GitHub یا frontend قرار ندهید؛ آن‌ها فقط به‌عنوان secret در backend تنظیم شوند. برای production مقدار `CORS_ORIGINS` را دقیقاً برابر دامنه Netlify بگذارید.
