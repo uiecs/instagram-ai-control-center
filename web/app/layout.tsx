@@ -1,3 +1,13 @@
+import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
 import './globals.css';
-export const metadata={title:'استودیو هوش مصنوعی'};
-export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="fa"><body>{children}</body></html>}
+
+export const metadata: Metadata = { title: 'استودیو هوش مصنوعی' };
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="fa" dir="rtl">
+      <body>{children}</body>
+    </html>
+  );
+}

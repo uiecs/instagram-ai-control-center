@@ -1,5 +1,19 @@
 {
-  "scripts": {"dev":"next dev -H 0.0.0.0","build":"next build","start":"next start"},
-  "dependencies": {"@types/node":"latest","@types/react":"latest","next":"latest","react":"latest","react-dom":"latest"},
-  "devDependencies": {"@netlify/plugin-nextjs":"latest"}
+  "scripts": {
+    "dev": "next dev -H 0.0.0.0",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "next": "14.2.35",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@netlify/plugin-nextjs": "5.15.0",
+    "@types/node": "20.17.30",
+    "@types/react": "18.3.18",
+    "@types/react-dom": "18.3.5",
+    "typescript": "5.8.2"
+  }
 }
