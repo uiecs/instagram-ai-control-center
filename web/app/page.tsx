@@ -1,57 +1,59 @@
 'use client';
 
-import { useState } from 'react';
+import { FormEvent, useState } from 'react';
 
-type Tab = 'chat' | 'content' | 'image' | 'search';
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+type View = 'chat' | 'commands' | 'content' | 'image' | 'search';
+type Message = { role: 'user' | 'assistant'; text: string };
+const API = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '');
 
 function InstagramMark() {
   return <svg className="instagram-mark" viewBox="0 0 24 24" aria-label="Instagram" role="img"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" strokeWidth="2"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" strokeWidth="2"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>;
 }
 
+async function post(path: string, body: Record<string, string>) {
+  if (!API) throw new Error('Backend is not configured. Set NEXT_PUBLIC_API_URL in Netlify and redeploy.');
+  const response = await fetch(`${API}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const data: unknown = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(typeof data === 'object' && data !== null && 'detail' in data ? String((data as { detail: unknown }).detail) : 'The backend request failed.');
+  return data;
+}
+
 export default function Home() {
-  const [tab, setTab] = useState<Tab>('chat');
-  const [prompt, setPrompt] = useState('');
-  const [out, setOut] = useState<unknown>(null);
+  const [view, setView] = useState<View>('chat');
+  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [result, setResult] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  async function run() {
-    if (!prompt.trim()) return;
-    setBusy(true); setOut(null); setError('');
-    const path = tab === 'chat' ? '/ai/chat' : tab === 'content' ? '/ai/content' : tab === 'image' ? '/ai/image' : '/search/username';
+  async function submit(event?: FormEvent) {
+    event?.preventDefault();
+    const value = input.trim();
+    if (!value || busy) return;
+    setBusy(true); setError(''); setResult(null);
+    const path = view === 'chat' || view === 'commands' ? '/ai/chat' : view === 'content' ? '/ai/content' : view === 'image' ? '/ai/image' : '/search/username';
+    if (view === 'chat') setMessages((items) => [...items, { role: 'user', text: value }]);
     try {
-      const response = await fetch(`${API}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: prompt.trim(), username: prompt.trim() }) });
-      const data: unknown = await response.json();
-      if (!response.ok) throw new Error(typeof data === 'object' && data !== null && 'detail' in data ? String((data as { detail: unknown }).detail) : 'Request failed');
-      setOut(data);
-    } catch (err) { setError(err instanceof Error ? err.message : 'Unexpected error'); }
+      const data = await post(path, view === 'search' ? { username: value, prompt: value } : { prompt: value });
+      if (view === 'chat') setMessages((items) => [...items, { role: 'assistant', text: typeof data === 'object' && data !== null && 'text' in data ? String((data as { text: unknown }).text) : JSON.stringify(data) }]);
+      else setResult(data);
+      setInput('');
+    } catch (err) { setError(err instanceof Error ? err.message : 'Unexpected error.'); }
     finally { setBusy(false); }
   }
 
-  const title = tab === 'chat' ? 'Chat with your AI assistant' : tab === 'content' ? 'Create publish-ready content' : tab === 'image' ? 'Generate an image from a prompt' : 'Public username search';
-  const action = tab === 'image' ? 'Generate image' : tab === 'search' ? 'Search publicly' : tab === 'content' ? 'Create content' : 'Send message';
+  const titles: Record<View, string> = { chat: 'Chat with your AI assistant', commands: 'Command console', content: 'Create publish-ready content', image: 'Generate an image from a prompt', search: 'Deep public username search' };
+  const placeholders: Record<View, string> = { chat: 'Ask your AI assistant anything...', commands: 'Example: Create a caption and 12 relevant hashtags...', content: 'Example: Create a premium caption for an iced coffee launch...', image: 'Example: A cinematic product photo of iced coffee...', search: 'Enter an Instagram username, without @' };
 
-  return <main dir="ltr">
-    <header><div className="brand"><InstagramMark /> <span>Instagram AI Studio</span></div><span className="pill">Creator dashboard</span></header>
-    <div className="layout">
-      <aside>
-        <button className={tab === 'chat' ? 'active' : ''} onClick={() => setTab('chat')}>✦ AI chat</button>
-        <button className={tab === 'content' ? 'active' : ''} onClick={() => setTab('content')}>✧ Content studio</button>
-        <button className={tab === 'image' ? 'active' : ''} onClick={() => setTab('image')}>▣ Image generator</button>
-        <button className={tab === 'search' ? 'active' : ''} onClick={() => setTab('search')}>⌕ Public search</button>
-      </aside>
-      <section>
-        <div className="hero"><small>ENTER YOUR COMMAND</small><h1>{title}</h1><p>Describe what you need. Review everything before publishing.</p></div>
-        <div className="card">
-          <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) void run(); }} placeholder={tab === 'search' ? 'Enter a public username, for example: brand_name' : 'Example: Create a premium caption for an iced coffee launch with relevant hashtags...'} />
-          <div className="actions"><button className="primary" disabled={busy || !prompt.trim()} onClick={() => void run()}>{busy ? 'Processing...' : action}</button><button onClick={() => { setPrompt(''); setOut(null); setError(''); }}>Clear</button></div>
-          {error && <div className="error">{error}</div>}
-          {out && typeof out === 'object' && out !== null && 'data_url' in out && <img className="generated" src={String((out as { data_url: unknown }).data_url)} alt="Generated result" />}
-          {out && <pre>{JSON.stringify(out, null, 2)}</pre>}
-        </div>
-        <div className="card publish"><h2>Safe publishing</h2><p>Real publishing requires official Meta connection and explicit confirmation.</p><button onClick={() => setTab('content')}>Open content studio</button></div>
-      </section>
-    </div>
-  </main>;
+  return <main dir="ltr"><header><div className="brand"><InstagramMark /><span>Instagram AI Studio</span></div><span className="pill">Creator dashboard</span></header><div className="layout"><aside>
+    <button className={view === 'chat' ? 'active' : ''} onClick={() => setView('chat')}>✦ AI chat</button>
+    <button className={view === 'commands' ? 'active' : ''} onClick={() => setView('commands')}>⌘ Command console</button>
+    <button className={view === 'content' ? 'active' : ''} onClick={() => setView('content')}>✧ Content studio</button>
+    <button className={view === 'image' ? 'active' : ''} onClick={() => setView('image')}>▣ Image generator</button>
+    <button className={view === 'search' ? 'active' : ''} onClick={() => setView('search')}>⌕ Deep username search</button>
+  </aside><section><div className="hero"><small>{view === 'search' ? 'PUBLIC WEB DISCOVERY' : 'AI WORKSPACE'}</small><h1>{titles[view]}</h1><p>{view === 'search' ? 'Search indexed public web results. This cannot guarantee every Instagram account.' : 'Use the chat for conversation or the separate command console for structured instructions.'}</p></div>
+    {view === 'chat' && <div className="card chat-log">{messages.length === 0 && <div className="empty">Start a conversation with your configured AI backend.</div>}{messages.map((message, index) => <div className={`message ${message.role}`} key={`${message.role}-${index}`}><b>{message.role === 'user' ? 'You' : 'AI assistant'}</b><p>{message.text}</p></div>)}</div>}
+    <form className="card" onSubmit={submit}><textarea value={input} onChange={(event) => setInput(event.target.value)} placeholder={placeholders[view]} /><div className="actions"><button className="primary" disabled={busy || !input.trim()}>{busy ? 'Processing...' : view === 'chat' ? 'Send message' : view === 'commands' ? 'Run command' : view === 'content' ? 'Create content' : view === 'image' ? 'Generate image' : 'Search public results'}</button><button type="button" onClick={() => { setInput(''); setResult(null); setError(''); if (view === 'chat') setMessages([]); }}>Clear</button></div>{error && <div className="error">{error}</div>}{result && typeof result === 'object' && result !== null && 'data_url' in result && <img className="generated" src={String((result as { data_url: unknown }).data_url)} alt="Generated result" />}{result && <pre>{JSON.stringify(result, null, 2)}</pre>}</form>
+    <div className="card publish"><h2>Safe publishing</h2><p>Official Meta connection and explicit confirmation are required before publishing.</p></div>
+  </section></div></main>;
 }
