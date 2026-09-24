@@ -7,8 +7,14 @@ type Message = { role: 'user' | 'assistant'; text: string };
 const API = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '');
 const COMPOSIO_URL = process.env.NEXT_PUBLIC_COMPOSIO_DASHBOARD_URL || 'https://dashboard.composio.dev';
 
+const friendlyWelcome = 'سلام شیوا جان، خوبی؟ چه خبر؟ چه اجراهایی می‌خوای روی اکانت پیج انجام بدم برات؟ انتشار پست، نوشتن کپشن و هشتگ، یا آماده‌سازی استوری؟';
+
 function InstagramMark() {
   return <svg className="instagram-mark" viewBox="0 0 24 24" aria-label="Instagram" role="img"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" strokeWidth="2"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" strokeWidth="2"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>;
+}
+
+function isGreeting(value: string) {
+  return /^(سلام|درود|های|هلو|hello|hi|hey)\b?[!؟?.،\s]*$/iu.test(value.trim());
 }
 
 async function post(path: string, body: Record<string, string>) {
@@ -33,8 +39,17 @@ export default function Home() {
     const value = input.trim();
     if (!value || busy) return;
     setBusy(true); setError(''); setResult(null);
-    const path = view === 'chat' || view === 'commands' ? '/ai/chat' : view === 'content' ? '/ai/content' : view === 'image' ? '/ai/image' : '/search/username';
     if (view === 'chat') setMessages((items) => [...items, { role: 'user', text: value }]);
+
+    // Give Shiwa the requested warm first greeting without requiring the backend.
+    if (view === 'chat' && messages.length === 0 && isGreeting(value)) {
+      setMessages((items) => [...items, { role: 'assistant', text: friendlyWelcome }]);
+      setInput('');
+      setBusy(false);
+      return;
+    }
+
+    const path = view === 'chat' || view === 'commands' ? '/ai/chat' : view === 'content' ? '/ai/content' : view === 'image' ? '/ai/image' : '/search/username';
     try {
       const data = await post(path, view === 'search' ? { username: value, prompt: value } : { prompt: value });
       if (view === 'chat') setMessages((items) => [...items, { role: 'assistant', text: typeof data === 'object' && data !== null && 'text' in data ? String((data as { text: unknown }).text) : JSON.stringify(data) }]);
