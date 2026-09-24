@@ -5,6 +5,7 @@ import { FormEvent, useState } from 'react';
 type View = 'chat' | 'commands' | 'content' | 'image' | 'search';
 type Message = { role: 'user' | 'assistant'; text: string };
 const API = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '');
+const COMPOSIO_URL = process.env.NEXT_PUBLIC_COMPOSIO_DASHBOARD_URL || 'https://dashboard.composio.dev';
 
 function InstagramMark() {
   return <svg className="instagram-mark" viewBox="0 0 24 24" aria-label="Instagram" role="img"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" strokeWidth="2"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" strokeWidth="2"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>;
@@ -20,6 +21,7 @@ async function post(path: string, body: Record<string, string>) {
 
 export default function Home() {
   const [view, setView] = useState<View>('chat');
+  const [collapsed, setCollapsed] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [result, setResult] = useState<unknown>(null);
@@ -45,15 +47,29 @@ export default function Home() {
   const titles: Record<View, string> = { chat: 'Chat with your AI assistant', commands: 'Command console', content: 'Create publish-ready content', image: 'Generate an image from a prompt', search: 'Deep public username search' };
   const placeholders: Record<View, string> = { chat: 'Ask your AI assistant anything...', commands: 'Example: Create a caption and 12 relevant hashtags...', content: 'Example: Create a premium caption for an iced coffee launch...', image: 'Example: A cinematic product photo of iced coffee...', search: 'Enter an Instagram username, without @' };
 
-  return <main dir="ltr"><header><div className="brand"><InstagramMark /><span>Instagram AI Studio</span></div><span className="pill">Creator dashboard</span></header><div className="layout"><aside>
-    <button className={view === 'chat' ? 'active' : ''} onClick={() => setView('chat')}>✦ AI chat</button>
-    <button className={view === 'commands' ? 'active' : ''} onClick={() => setView('commands')}>⌘ Command console</button>
-    <button className={view === 'content' ? 'active' : ''} onClick={() => setView('content')}>✧ Content studio</button>
-    <button className={view === 'image' ? 'active' : ''} onClick={() => setView('image')}>▣ Image generator</button>
-    <button className={view === 'search' ? 'active' : ''} onClick={() => setView('search')}>⌕ Deep username search</button>
-  </aside><section><div className="hero"><small>{view === 'search' ? 'PUBLIC WEB DISCOVERY' : 'AI WORKSPACE'}</small><h1>{titles[view]}</h1><p>{view === 'search' ? 'Search indexed public web results. This cannot guarantee every Instagram account.' : 'Use the chat for conversation or the separate command console for structured instructions.'}</p></div>
-    {view === 'chat' && <div className="card chat-log">{messages.length === 0 && <div className="empty">Start a conversation with your configured AI backend.</div>}{messages.map((message, index) => <div className={`message ${message.role}`} key={`${message.role}-${index}`}><b>{message.role === 'user' ? 'You' : 'AI assistant'}</b><p>{message.text}</p></div>)}</div>}
-    <form className="card" onSubmit={submit}><textarea value={input} onChange={(event) => setInput(event.target.value)} placeholder={placeholders[view]} /><div className="actions"><button className="primary" disabled={busy || !input.trim()}>{busy ? 'Processing...' : view === 'chat' ? 'Send message' : view === 'commands' ? 'Run command' : view === 'content' ? 'Create content' : view === 'image' ? 'Generate image' : 'Search public results'}</button><button type="button" onClick={() => { setInput(''); setResult(null); setError(''); if (view === 'chat') setMessages([]); }}>Clear</button></div>{error && <div className="error">{error}</div>}{result && typeof result === 'object' && result !== null && 'data_url' in result && <img className="generated" src={String((result as { data_url: unknown }).data_url)} alt="Generated result" />}{result && <pre>{JSON.stringify(result, null, 2)}</pre>}</form>
-    <div className="card publish"><h2>Safe publishing</h2><p>Official Meta connection and explicit confirmation are required before publishing.</p></div>
-  </section></div></main>;
+  function selectView(next: View) {
+    setView(next);
+    if (window.innerWidth < 800) setCollapsed(true);
+  }
+
+  return <main className={collapsed ? 'sidebar-collapsed' : ''} dir="ltr">
+    <header><button className="dashboard-toggle" onClick={() => setCollapsed((value) => !value)} aria-label="Toggle dashboard">☰</button><div className="brand"><InstagramMark /><span>ιɴѕтαɢrαм αι coɴтrol ceɴтer ѕнιwα</span></div><span className="pill">Creator dashboard</span></header>
+    <div className="layout">
+      <aside className="sidebar-panel">
+        <div className="sidebar-heading"><span>Dashboard</span><button className="collapse-button" onClick={() => setCollapsed(true)} aria-label="Collapse dashboard">‹</button></div>
+        <button className={view === 'chat' ? 'active' : ''} onClick={() => selectView('chat')}><span>▱</span><label>AI chat</label></button>
+        <button className={view === 'commands' ? 'active' : ''} onClick={() => selectView('commands')}><span>⌘</span><label>Command console</label></button>
+        <button className={view === 'content' ? 'active' : ''} onClick={() => selectView('content')}><span>✧</span><label>Content studio</label></button>
+        <button className={view === 'image' ? 'active' : ''} onClick={() => selectView('image')}><span>▣</span><label>Image generator</label></button>
+        <button className={view === 'search' ? 'active' : ''} onClick={() => selectView('search')}><span>⌕</span><label>Deep username search</label></button>
+        <button onClick={() => window.open(COMPOSIO_URL, '_blank', 'noopener,noreferrer')}><span>◎</span><label>Connect Instagram</label></button>
+      </aside>
+      <section className="workspace"><div className="hero"><small>{view === 'search' ? 'PUBLIC WEB DISCOVERY' : 'AI WORKSPACE'}</small><h1>{titles[view]}</h1><p>{view === 'search' ? 'Search indexed public web results. This cannot guarantee every Instagram account.' : 'Use the chat for conversation or the separate command console for structured instructions.'}</p></div>
+        <div className="composio-card"><div><strong>Instagram connection</strong><span>Manage the official connection securely with Composio.</span></div><button onClick={() => window.open(COMPOSIO_URL, '_blank', 'noopener,noreferrer')}>Open Composio</button></div>
+        {view === 'chat' && <div className="card chat-log">{messages.length === 0 && <div className="empty">Start a conversation with your configured AI backend.</div>}{messages.map((message, index) => <div className={`message ${message.role}`} key={`${message.role}-${index}`}><b>{message.role === 'user' ? 'You' : 'AI assistant'}</b><p>{message.text}</p></div>)}</div>}
+        <form className="card command-card" onSubmit={submit}><textarea value={input} onChange={(event) => setInput(event.target.value)} placeholder={placeholders[view]} /><div className="actions"><button className="primary" disabled={busy || !input.trim()}>{busy ? 'Processing...' : view === 'chat' ? 'Send message' : view === 'commands' ? 'Run command' : view === 'content' ? 'Create content' : view === 'image' ? 'Generate image' : 'Search public results'}</button><button type="button" onClick={() => { setInput(''); setResult(null); setError(''); if (view === 'chat') setMessages([]); }}>Clear</button></div>{error && <div className="error">{error}</div>}{result && typeof result === 'object' && result !== null && 'data_url' in result && <img className="generated" src={String((result as { data_url: unknown }).data_url)} alt="Generated result" />}{result && <pre>{JSON.stringify(result, null, 2)}</pre>}</form>
+        <div className="card publish"><h2>Safe publishing</h2><p>Official Meta connection and explicit confirmation are required before publishing.</p></div>
+      </section>
+    </div>
+  </main>;
 }
