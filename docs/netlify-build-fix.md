@@ -1,14 +1,8 @@
-# رفع خطای Build در Netlify
+# Netlify build fix
 
-تنظیمات ریشه پروژه اکنون برای monorepo اصلاح شده است:
+علت اصلی خطای ساخت در نسخه قبلی، استفاده از `useState` در `app/page.tsx` بدون علامت `'use client'` بود. این فایل اکنون به‌عنوان Client Component علامت‌گذاری و با TypeScript strict سازگار شده است.
 
-- `base = "web"`
-- نسخه‌های Next/React/TypeScript ثابت شده‌اند تا نصب Netlify قابل تکرار باشد.
-- Node روی نسخه 20 تنظیم شده است.
-- `@netlify/plugin-nextjs` در زمان build نصب می‌شود.
-- `next.config.ts` و layout تایپ‌شده اضافه شده‌اند.
-
-در Netlify این تنظیمات را دستی override نکنید. اگر قبلاً تنظیمات وارد کرده‌اید، مقدارهای زیر را بررسی کنید:
+تنظیمات Netlify:
 
 ```text
 Base directory: web
@@ -17,4 +11,4 @@ Publish directory: .next
 Node version: 20
 ```
 
-پس از commit جدید، از مسیر Deploys گزینه **Clear cache and deploy site** را اجرا کنید.
+بعد از دریافت کامیت جدید، در Netlify گزینه **Deploys → Trigger deploy → Clear cache and deploy site** را بزنید. اگر در Site settings مقدار دیگری برای Base directory یا Build command ثبت شده، حذف یا با مقادیر بالا جایگزین کنید.

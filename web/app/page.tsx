@@ -1,7 +1,64 @@
-import React, {useState} from 'react';
-const API=process.env.NEXT_PUBLIC_API_URL||'http://localhost:8000';
-export default function Home(){
- const [tab,setTab]=useState('chat'); const [prompt,setPrompt]=useState(''); const [out,setOut]=useState<any>(null); const [busy,setBusy]=useState(false); const [image,setImage]=useState('');
- async function run(path:string){setBusy(true);setOut(null);try{const r=await fetch(API+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});setOut(await r.json())}finally{setBusy(false)}}
- return <main dir="rtl"><header><div className="brand">✦ استودیو هوش مصنوعی</div><span className="pill">داشبورد سازنده محتوا</span></header><div className="layout"><aside><button className="active">⌂ خانه</button><button onClick={()=>setTab('chat')}>◈ چت هوشمند</button><button onClick={()=>setTab('content')}>✦ تولید محتوا</button><button onClick={()=>setTab('image')}>▣ تولید تصویر</button><button onClick={()=>setTab('publish')}>➤ انتشار پست</button><button onClick={()=>setTab('search')}>⌕ جست‌وجوی عمومی</button></aside><section><div className="hero"><small>فرمان خود را وارد کنید</small><h1>{tab==='chat'?'با دستیار هوشمند گفتگو کن':tab==='content'?'تولید محتوای آماده انتشار':tab==='image'?'ساخت تصویر با دستور متنی':tab==='search'?'بررسی نتایج عمومی نام کاربری':'پیش‌نمایش و انتشار امن'}</h1><p>ایده‌ات را بنویس؛ پیش از هر انتشار امکان بازبینی و تأیید داری.</p></div><div className="card"><textarea value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder={tab==='search'?'نام کاربری را وارد کن؛ مثال: brand_name': 'مثلاً: برای قهوه سرد یک کپشن فارسی لوکس با هشتگ‌های مرتبط بساز...'}/><div className="actions"><button className="primary" disabled={busy||!prompt} onClick={()=>run(tab==='chat'?'/ai/chat':tab==='content'?'/ai/content':tab==='image'?'/ai/image':'/search/username')}>{busy?'در حال پردازش…':tab==='image'?'تولید تصویر':tab==='search'?'جست‌وجوی عمومی':'اجرا'}</button><button onClick={()=>{setPrompt('');setOut(null)}}>پاک کردن</button></div>{out&&<pre>{JSON.stringify(out,null,2)}</pre>}</div><div className="card publish"><h2>انتشار ویژه</h2><p>انتشار واقعی فقط پس از اتصال Meta و تأیید صریح انجام می‌شود.</p><button onClick={()=>setTab('publish')}>باز کردن پیش‌نمایش</button></div></section></div></main>
+'use client';
+
+import { useState } from 'react';
+
+type Tab = 'chat' | 'content' | 'image' | 'search';
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+export default function Home() {
+  const [tab, setTab] = useState<Tab>('chat');
+  const [prompt, setPrompt] = useState('');
+  const [out, setOut] = useState<unknown>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  async function run() {
+    if (!prompt.trim()) return;
+    setBusy(true);
+    setOut(null);
+    setError('');
+    const path = tab === 'chat' ? '/ai/chat' : tab === 'content' ? '/ai/content' : tab === 'image' ? '/ai/image' : '/search/username';
+    try {
+      const response = await fetch(`${API}${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: prompt.trim(), username: prompt.trim() }),
+      });
+      const data: unknown = await response.json();
+      if (!response.ok) throw new Error(typeof data === 'object' && data !== null && 'detail' in data ? String((data as { detail: unknown }).detail) : 'درخواست ناموفق بود');
+      setOut(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'خطای ناشناخته');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const title = tab === 'chat' ? 'با دستیار هوشمند گفتگو کن' : tab === 'content' ? 'تولید محتوای آماده انتشار' : tab === 'image' ? 'ساخت تصویر با دستور متنی' : 'جست‌وجوی عمومی نام کاربری';
+  const action = tab === 'image' ? 'تولید تصویر' : tab === 'search' ? 'جست‌وجوی عمومی' : 'اجرا';
+
+  return (
+    <main dir="rtl">
+      <header><div className="brand">✦ استودیو هوش مصنوعی</div><span className="pill">داشبورد سازنده محتوا</span></header>
+      <div className="layout">
+        <aside>
+          <button className={tab === 'chat' ? 'active' : ''} onClick={() => setTab('chat')}>◈ چت هوشمند</button>
+          <button className={tab === 'content' ? 'active' : ''} onClick={() => setTab('content')}>✦ تولید محتوا</button>
+          <button className={tab === 'image' ? 'active' : ''} onClick={() => setTab('image')}>▣ تولید تصویر</button>
+          <button className={tab === 'search' ? 'active' : ''} onClick={() => setTab('search')}>⌕ جست‌وجوی عمومی</button>
+        </aside>
+        <section>
+          <div className="hero"><small>فرمان خود را وارد کنید</small><h1>{title}</h1><p>ایده‌ات را بنویس؛ پیش از هر انتشار امکان بازبینی و تأیید داری.</p></div>
+          <div className="card">
+            <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) void run(); }} placeholder={tab === 'search' ? 'نام کاربری را وارد کن؛ مثال: brand_name' : 'مثلاً: برای قهوه سرد یک کپشن فارسی لوکس با هشتگ‌های مرتبط بساز...'} />
+            <div className="actions"><button className="primary" disabled={busy || !prompt.trim()} onClick={() => void run()}>{busy ? 'در حال پردازش…' : action}</button><button onClick={() => { setPrompt(''); setOut(null); setError(''); }}>پاک کردن</button></div>
+            {error && <div className="error">{error}</div>}
+            {out && typeof out === 'object' && out !== null && 'data_url' in out && <img className="generated" src={String((out as { data_url: unknown }).data_url)} alt="تصویر تولیدشده" />}
+            {out && <pre>{JSON.stringify(out, null, 2)}</pre>}
+          </div>
+          <div className="card publish"><h2>انتشار ویژه</h2><p>انتشار واقعی فقط پس از اتصال Meta و تأیید صریح انجام می‌شود.</p></div>
+        </section>
+      </div>
+    </main>
+  );
 }
